@@ -1,0 +1,57 @@
+Task 1
+     flatten([a,[b],[c,d],[],[[[e, f]]],g], [a, b, c, d, e, f, g]).
+     true.
+
+     ?- flatten([a,b,[c,d],[],[[[e]]],f], L). 
+     L = [a, b, c, d, e, f].
+
+     ?- flatten([a,[b],[c,d],[],[[[e, f]]],g], L).
+     L = [a, b, c, d, e, f, g].
+
+Task 2
+     ?- translate([3, 5, 1, 3], [three,five,one,three]).
+     true.
+
+     ?- translate([3, 5, 1, 3], L).
+     L = [three, five, one, three].
+
+     translate([7, 2, 4, 9, 3], L).
+     L = [seven, two, four, nine, three].
+     L = [seven, two, four, nine, three].
+
+Task 3
+     ?- joe was What.
+     What = (the head of the department).
+
+     ?- Who was the head of the department. 
+     Who = joe.
+
+     ?- joe was the head of the department. 
+     true.
+
+Task 4
+     ?- subsum( [1,2,7,3,6],6, PartList).
+     PartList = [1, 2, 3] ;
+     PartList = [6] ;
+     false.
+
+     ?- subsum( [1,2,7,3,6],6, [1,2,3]).
+     true ;
+     false.
+
+     ?- subsum( [1,2,7,3,6],6, [1,2]).
+     false.
+
+Task 5
+     ?- my_between(3, 5, X).
+     X = 3 ;
+     X = 4 ;
+     X = 5 ;
+     false.
+
+     ?- my_between(4, 3, X).
+     false.
+
+     ?- my_between(3, 5, 4).
+     true ;
+     false.

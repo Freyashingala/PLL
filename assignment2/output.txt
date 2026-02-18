@@ -1,0 +1,50 @@
+Task 1
+split:
+     ?- split([3,-1,0,5,-2],[3,0,5],[ -1,-2]).
+     true .
+
+     ?- split([3,-1,0,5,-2],X,Y).
+     X = [3, 0, 5],
+     Y = [-1, -2] ;
+     false.
+
+     ?- split([3,-1,0,5,-2],X,[-1,-2]).
+     X = [3, 0, 5] ;
+     false.
+
+split_cut:
+     ?- split_cut([3,-1,0,5,-2],[3,0,5],[ -1,-2]).
+     true.
+
+     ?- split_cut([3,-1,0,5,-2],X,Y).
+     X = [3, 0, 5],
+     Y = [-1, -2].
+
+     ?- split_cut([3,-1,0,5,-2],X,[-1,-2]).
+     X = [3, 0, 5].
+
+Task 2:
+     ?- route(aizawl, guwahati, R).
+     R = [aizawl, agartala, silchar, haflong, lumding, nagaon, guwahati] ;
+     false.
+
+     ?- route(silchar, guwahati, R).
+     R = [silchar, haflong, lumding, nagaon, guwahati] ;
+     false.
+
+     ?- route(tezpur, tezpur, R).
+     R = [tezpur] ;
+     false.
+
+Task 3:
+     ?- number_of_parents(adam,2).
+     false.
+
+     ?- number_of_parents(eve,2).
+     false.
+
+     ?- number_of_parents(adam,X).
+     X = 0.
+
+     ?- number_of_parents(ab,X).
+     X = 2.
