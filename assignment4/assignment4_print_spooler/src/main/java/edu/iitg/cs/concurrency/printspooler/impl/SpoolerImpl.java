@@ -1,10 +1,14 @@
 package edu.iitg.cs.concurrency.printspooler.impl;
 
-import edu.iitg.cs.concurrency.printspooler.api.*;
-
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+
+import edu.iitg.cs.concurrency.printspooler.api.JobStatus;
+import edu.iitg.cs.concurrency.printspooler.api.PrintJob;
+import edu.iitg.cs.concurrency.printspooler.api.Spooler;
+import edu.iitg.cs.concurrency.printspooler.api.SpoolerMetrics;
 
 /**
  * TODO(STUDENT):
@@ -45,7 +49,8 @@ public final class SpoolerImpl implements Spooler {
                     break;
                 } catch (RuntimeException e) {
                     // TODO(STUDENT): avoid dispatcher death
-                    throw e;
+                    System.err.println("Runtime error in dispatcher:" + e);   // dont throw error instead log the error and continue
+                    // throw e;
                 }
             }
         }, "spooler-dispatcher");
@@ -79,7 +84,12 @@ public final class SpoolerImpl implements Spooler {
     @Override
     public boolean cancel(long jobId) {
         // TODO(STUDENT): ensure CANCELLED status is visible immediately
-        return true;
+
+        // either job still in queue or already taken by dispatcher, handle both
+        boolean removed = queue.removeIfPresent(jobId);
+        boolean marked = registry.markCancelled(jobId);
+
+        return removed || marked;
     }
 
     @Override
@@ -101,5 +111,18 @@ public final class SpoolerImpl implements Spooler {
     @Override
     public void close() throws Exception {
         // TODO(STUDENT): implement clean shutdown
+        closed = true;  // terminating dispatcher
+
+        dispatcher.interrupt(); // interrupt in case it is blocked on takeBlocking()
+        dispatcher.join();  // wait for dispatcher to finish submitting remaining jobs
+
+        pool.shutdown();
+        try {
+            // wait till all tasks finish execution for max 0.5 secs
+            while (!pool.awaitTermination(500, TimeUnit.MILLISECONDS)) {}
+        } catch (InterruptedException e) {  // if current thread interrupted, forcefully stop all running tasks
+            pool.shutdownNow();
+            Thread.currentThread().interrupt(); // restore interrupt ststus
+        }
     }
 }

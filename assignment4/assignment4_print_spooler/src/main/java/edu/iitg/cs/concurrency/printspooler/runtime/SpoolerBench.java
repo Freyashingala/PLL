@@ -1,11 +1,11 @@
 package edu.iitg.cs.concurrency.printspooler.runtime;
 
-import edu.iitg.cs.concurrency.printspooler.api.PrintJob;
-import edu.iitg.cs.concurrency.printspooler.impl.SpoolerImpl;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+
+import edu.iitg.cs.concurrency.printspooler.api.PrintJob;
+import edu.iitg.cs.concurrency.printspooler.impl.SpoolerImpl;
 
 public class SpoolerBench {
     public static void main(String[] args) throws Exception {

@@ -25,11 +25,30 @@ final class BoundedJobQueue {
 
     void putBlocking(long jobId) throws InterruptedException {
         // TODO(STUDENT)
+        synchronized (this) {
+            while (q.size() == capacity) {
+                wait();
+            }
+            q.addLast(jobId);   // adding jobId to queue
+            maxDepth = Math.max(maxDepth, q.size());    // track maximum queue depth reached for metrics
+            notifyAll();
+        }
     }
 
     boolean putWithTimeout(long jobId, long timeoutMs) throws InterruptedException {
         synchronized (this) {
             // TODO(STUDENT)
+            long deadline = System.currentTimeMillis() + timeoutMs; // calculating absolute deadline to handle multiple wakeups
+
+            while (q.size() == capacity) {
+                long remaining = deadline - System.currentTimeMillis();
+                if (remaining <= 0) return false;   // if timeout expired, stop waiting and fail insertion
+                wait(remaining);    // wait remaining time
+            }
+
+            q.addLast(jobId);
+            maxDepth = Math.max(maxDepth, q.size());
+            notifyAll();
             return true;
         }
     }
@@ -37,6 +56,11 @@ final class BoundedJobQueue {
     long takeBlocking() throws InterruptedException {
         synchronized (this) {
             // TODO(STUDENT)
+            while (q.isEmpty()) {
+                wait(); // blocking consumer when queue is empty
+            }
+            long id = q.removeFirst();
+            notifyAll();    // space available in queue
             return id;
         }
     }
