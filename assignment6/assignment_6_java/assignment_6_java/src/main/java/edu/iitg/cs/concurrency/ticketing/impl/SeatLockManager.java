@@ -1,7 +1,6 @@
 package edu.iitg.cs.concurrency.ticketing.impl;
 import java.util.ArrayList;
 import java.util.Comparator;
-
 import java.util.List;
 
 final class SeatLockManager {
@@ -9,15 +8,17 @@ final class SeatLockManager {
         // TODO(STUDENT): implement deadlock-free locking.
         // Current naive strategy is NOT safe under concurrency.
 
+        // creating a duplicate so that original order is intact
         List<Seat> sortedSeats = new ArrayList<>(seats);
-        sortedSeats.sort(Comparator.comparingInt(s -> s.seatId));
+        sortedSeats.sort(Comparator.comparingInt(s -> s.seatId));   // sort seats to eliminate circular wait (enforcing lock ordering globally)
         for (Seat s : sortedSeats) {
-            s.lock.lockInterruptibly();
+            s.lock.lockInterruptibly(); // listens to interruption signals instead of waiting forever
         }
     }
 
     void unlockAll(List<Seat> seats) {
 
+        // similar to lockAll
         List<Seat> sortedSeats = new ArrayList<>(seats);
         sortedSeats.sort(Comparator.comparingInt(s -> s.seatId));
 

@@ -45,7 +45,7 @@ size (Node _ left right) = 1 + size left + size right
 -- 1
 --
 findMin :: MinHeap a -> a
-findMin (Node val _ _) = val
+findMin (Node value _ _) = value
 findMin Empty = error "empty heap"
 
 
@@ -56,7 +56,7 @@ findMin Empty = error "empty heap"
 --
 heapToList :: MinHeap a -> [a]
 heapToList Empty = []
-heapToList (Node val left right) = val : heapToList left ++ heapToList right
+heapToList (Node value left right) = value : heapToList left ++ heapToList right
 
 
 -- | Check whether a heap satisfies the min-heap property.
@@ -70,11 +70,11 @@ heapToList (Node val left right) = val : heapToList left ++ heapToList right
 --
 isHeap :: Ord a => MinHeap a -> Bool
 isHeap Empty = True
-isHeap (Node val left right) = 
-    check val left && check val right && isHeap left && isHeap right
+isHeap (Node value left right) = 
+    check value left && check value right && isHeap left && isHeap right
   where
     check _ Empty = True
-    check v (Node childVal _ _) = v <= childVal
+    check v (Node childValue _ _) = v <= childValue
 
 
 -- | Helper function to merge two heaps.
@@ -92,7 +92,7 @@ merge h1@(Node v1 l1 r1) h2@(Node v2 l2 r2)
 -- Node 2 (Node 5 Empty Empty) Empty
 --
 insertHeap :: Ord a => a -> MinHeap a -> MinHeap a
-insertHeap val heap = merge (Node val Empty Empty) heap
+insertHeap value = merge (Node value Empty Empty)
 
 
 -- | Delete the minimum element (root) from the heap.
@@ -126,7 +126,7 @@ evenHeap heap = [x | x <- heapToList heap, even x]
 --
 mapHeap :: (a -> a) -> MinHeap a -> MinHeap a
 mapHeap _ Empty = Empty
-mapHeap f (Node val left right) = Node (f val) (mapHeap f left) (mapHeap f right)
+mapHeap f (Node value left right) = Node (f value) (mapHeap f left) (mapHeap f right)
 
 
 -- | Process the heap by extracting even elements and squaring them.

@@ -1,11 +1,17 @@
 package edu.iitg.cs.concurrency.ticketing.impl;
 
-import edu.iitg.cs.concurrency.ticketing.api.*;
-
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.ConcurrentHashMap;
+
+import edu.iitg.cs.concurrency.ticketing.api.Hold;
+import edu.iitg.cs.concurrency.ticketing.api.Receipt;
+import edu.iitg.cs.concurrency.ticketing.api.SeatState;
+import edu.iitg.cs.concurrency.ticketing.api.TicketMetrics;
+import edu.iitg.cs.concurrency.ticketing.api.TicketService;
 
 public final class TicketServiceImpl implements TicketService {
     public static final long HOLD_TTL_MS = 1500;
@@ -14,6 +20,7 @@ public final class TicketServiceImpl implements TicketService {
     private final SeatLockManager lockMgr = new SeatLockManager();
     private final HoldExpiryService expiry = new HoldExpiryService();
 
+    // added concurrent to hashmap (to make it thread-safe)
     private final Map<Long, Hold> holds = new ConcurrentHashMap<>(); // TODO: protect with synchronized/locks
     private final AtomicLong holdIdGen = new AtomicLong(1);
     private final AtomicLong receiptIdGen = new AtomicLong(1);
@@ -37,6 +44,7 @@ public final class TicketServiceImpl implements TicketService {
         if (closed) throw new IllegalStateException("closed");
         if (count <= 0) throw new IllegalArgumentException("count must be > 0");
 
+        // wrapped in while loop, prevents race conditions (double booking)
         while(true) {
             List<Seat> chosen = new ArrayList<>();
             for (Seat s : seats) {
@@ -50,7 +58,8 @@ public final class TicketServiceImpl implements TicketService {
 
             lockMgr.lockAll(chosen);
             try {
-                // MUST re-verify state inside the lock!
+                // TODO: re-check they are FREE after locking, then mark HELD, record hold atomically
+                // re-verify state inside the lock
                 boolean allFree = true;
                 for (Seat s : chosen) {
                     if (s.state != SeatState.FREE) {
@@ -59,7 +68,7 @@ public final class TicketServiceImpl implements TicketService {
                     }
                 }
                 
-                // If another thread stole the seats, unlock and retry the while loop
+                // if another thread stole the seats, unlock and retry the while loop
                 if (!allFree) {
                     continue; 
                 }
@@ -85,17 +94,17 @@ public final class TicketServiceImpl implements TicketService {
     private void expireHold(long holdId) {
         // TODO: atomically release seats if still HELD for this holdId
 
-        Hold h = holds.remove(holdId);
+        Hold h = holds.remove(holdId);  // prevents expriy timer if user already confirmed or cancelled ticket
         if (h == null) return; 
 
-        List<Seat> ss = new ArrayList<>();
+        List<Seat> ss = new ArrayList<>();  // temporary list to get seat objects from seat number
         for (int sid : h.seatIds()) ss.add(seats[sid]);
         try {
             lockMgr.lockAll(ss);
-            try {
+            try {   // this try is for if we lock it we always unlock it
                 boolean expiredAny = false;
                 for (Seat s : ss) {
-                    // Verify the seat wasn't somehow re-assigned 
+                    // verify the seat wasn't somehow re-assigned 
                     if (s.state == SeatState.HELD && s.holdId == holdId) {
                         s.state = SeatState.FREE;
                         s.holdId = -1;
@@ -109,7 +118,7 @@ public final class TicketServiceImpl implements TicketService {
             } finally {
                 lockMgr.unlockAll(ss);
             }
-        } catch (InterruptedException e) {
+        } catch (InterruptedException e) {  // handles thread interruptions during shutdown
             Thread.currentThread().interrupt();
         }
     }
@@ -117,7 +126,7 @@ public final class TicketServiceImpl implements TicketService {
     @Override
     public Receipt confirm(long holdId) throws InterruptedException {
         if (closed) throw new IllegalStateException("closed");
-        Hold h = holds.remove(holdId);
+        Hold h = holds.remove(holdId);  // made it remove instead of get as remove is atomic
         if (h == null) {
             rejected.incrementAndGet();
             return null;
@@ -154,6 +163,7 @@ public final class TicketServiceImpl implements TicketService {
         if (h == null) return false;
 
         // TODO: lock seats and release atomically
+        // similar to confirm
         expiry.cancelExpiry(holdId);
 
         List<Seat> ss = new ArrayList<>();
@@ -172,7 +182,7 @@ public final class TicketServiceImpl implements TicketService {
             } finally {
                 lockMgr.unlockAll(ss);
             }
-        } catch (InterruptedException e) {
+        } catch (InterruptedException e) {  // handles thread interruptions during shutdown
             Thread.currentThread().interrupt();
             return false;
         }
